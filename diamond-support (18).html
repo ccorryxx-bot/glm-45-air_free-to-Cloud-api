@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Diamond Support - Secure Cloud</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700;800&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  let db;
+
+  window.addEventListener('load', () => {
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZMlLbAmeJ51TNzs8YVKcx38RH0aGDvuA",
+      authDomain: "openr-gpt-oss-key.firebaseapp.com",
+      projectId: "openr-gpt-oss-key",
+      storageBucket: "openr-gpt-oss-key.firebasestorage.app",
+      messagingSenderId: "659835713643",
+      appId: "1:659835713643:web:d9772b9a4a75c9e486592e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+
+    // KB auto-load from cloud
+    db.collection("settings").doc("knowledge").onSnapshot(snap => {
+      if (snap.exists) {
+        const el = document.getElementById('knowledgeBase');
+        if (el) el.value = snap.data().content;
+      }
+    });
+  });
+
+  window.saveToCloud = async () => {
+    const data = document.getElementById('knowledgeBase').value;
+    const saveBtn = document.getElementById('saveBtn');
+    if (!data.trim()) return alert("အချက်အလက် အရင်ဖြည့်ပါ။");
+    if (!db) return alert("Firebase မတင်ရသေးပါ၊ ခဏစောင့်ပြီး ထပ်ကြိုးစားပါ။");
+    const oldText = saveBtn.innerText;
+    saveBtn.innerText = "⏳ သိမ်းနေသည်...";
+    saveBtn.disabled = true;
+    try {
+      await db.collection("settings").doc("knowledge").set({
+        content: data,
+        updatedAt: new Date().toISOString()
+      });
+      alert("✅ Cloud မှာ အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ!");
+    } catch(e) { alert("Error: " + e.message); }
+    saveBtn.innerText = oldText;
+    saveBtn.disabled = false;
+  };
+
+  window.logChatToFirebase = async (userMsg, botReply) => {
+    try {
+      if (!db) return;
+      await db.collection("chatLogs").add({
+        user: userMsg,
+        bot: botReply,
+        timestamp: new Date().toISOString()
+      });
+    } catch(e) {}
+  };
+
+  window.loadChatLogsFromFirebase = async () => {
+    const box = document.getElementById('logBox');
+    box.innerHTML = '<div class="log-empty">Loading...</div>';
+    if (!db) { box.innerHTML = '<div class="log-empty">Firebase မတင်ရသေးပါ</div>'; return; }
+    try {
+      const snap = await db.collection("chatLogs").orderBy("timestamp","desc").limit(50).get();
+      if (snap.empty) { box.innerHTML = '<div class="log-empty">မေးခွန်းများ မရှိသေးပါ</div>'; return; }
+      box.innerHTML = '';
+      snap.forEach(d => {
+        const data = d.data();
+        const t = new Date(data.timestamp).toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+        const el = document.createElement('div');
+        el.className = 'log-item';
+        el.innerHTML = `<div class="log-q">👤 ${data.user}</div><div class="log-a">💎 ${(data.bot||'').slice(0,120)}${(data.bot||'').length>120?'...':''}</div><div class="log-t">${t}</div>`;
+        box.appendChild(el);
+      });
+    } catch(e) { box.innerHTML = '<div class="log-empty">Error: ' + e.message + '</div>'; }
+  };
+
+  db.collection("settings").doc("knowledge").onSnapshot(snap => {
+    if (snap.exists) {
+      const el = document.getElementById('knowledgeBase');
+      if (el) el.value = snap.data().content;
+    }
+  });
+</script>
+
+<style>
+  :root {
+    --bg:       #06080f;
+    --bg2:      #0b0e1a;
+    --surface:  rgba(11,15,26,0.82);
+    --border:   rgba(255,255,255,0.07);
+    --text:     #eef2ff;
+    --muted:    rgba(200,210,240,0.60);
+    --p1:       #6366f1;
+    --p2:       #818cf8;
+    --acc:      #38bdf8;
+    --gem:      #f472b6;
+    --success:  #34d399;
+    --glow-p:   rgba(99,102,241,0.30);
+    --glow-a:   rgba(56,189,248,0.20);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { height:100%; height:-webkit-fill-available; }
+  body {
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(99,102,241,0.22), transparent),
+      radial-gradient(ellipse 40% 30% at 10% 60%, rgba(56,189,248,0.10), transparent),
+      radial-gradient(ellipse 40% 30% at 90% 70%, rgba(244,114,182,0.10), transparent),
+      linear-gradient(170deg, #07091a 0%, #06080f 100%);
+    color:var(--text);
+    overflow:hidden;
+    font-family:'DM Sans','Noto Sans Myanmar',sans-serif;
+  }
+
+  body::after {
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 180px;
+    opacity:0.45;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  body::before {
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:linear-gradient(180deg, rgba(0,0,0,0.5), transparent 80%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ── Admin Panel ── */
+  #adminDashboard {
+    position:fixed;
+    top:0; left:-100%;
+    width:100%; max-width:380px;
+    height:100%;
+    z-index:1000;
+    padding:28px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    background:linear-gradient(180deg, rgba(10,12,24,0.98), rgba(7,9,18,0.99));
+    border-right:1px solid rgba(99,102,241,0.18);
+    box-shadow:20px 0 60px rgba(0,0,0,0.55);
+    transition:left 0.40s cubic-bezier(0.4,0,0.2,1);
+    backdrop-filter:blur(24px);
+  }
+  #adminDashboard.open { left:0; }
+
+  .panel-top { display:flex; align-items:center; justify-content:space-between; }
+  .panel-close {
+    cursor:pointer; color:var(--muted); font-size:12px; font-weight:700;
+    letter-spacing:0.5px; transition:0.2s;
+    font-family:'Syne',sans-serif;
+  }
+  .panel-close:hover { color:#fff; transform:translateX(-2px); }
+  .panel-title { font-size:17px; font-weight:800; color:#fff; font-family:'Syne',sans-serif; }
+  .panel-badge {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:7px 14px; border-radius:999px;
+    background:rgba(52,211,153,0.08);
+    border:1px solid rgba(52,211,153,0.18);
+    color:#6ee7b7; font-size:11px; font-weight:700; letter-spacing:0.5px;
+  }
+  .panel-badge::before {
+    content:""; width:6px; height:6px; border-radius:50%;
+    background:#34d399; box-shadow:0 0 6px #34d399;
+    animation:pulse 2s ease infinite;
+  }
+  .panel-label { font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.3px; margin-top:2px; }
+
+  textarea {
+    flex:1; width:100%;
+    background:rgba(0,0,0,0.35);
+    border:1px solid rgba(99,102,241,0.20);
+    border-radius:16px;
+    color:#a5f3a0;
+    padding:16px; resize:none; outline:none;
+    font-size:13px; line-height:1.75;
+    font-family:'DM Sans','Noto Sans Myanmar',sans-serif;
+    transition:0.2s;
+  }
+  textarea:focus {
+    border-color:rgba(56,189,248,0.45);
+    box-shadow:0 0 0 4px rgba(56,189,248,0.08);
+  }
+
+  /* ── Main Container ── */
+  .container {
+    width:100%; max-width:560px;
+    height:100vh;
+    height:100dvh;
+    display:flex; flex-direction:column;
+    background:var(--surface);
+    border-left:1px solid var(--border);
+    border-right:1px solid var(--border);
+    backdrop-filter:blur(28px);
+    position:relative;
+    z-index:1;
+    box-shadow:0 0 80px rgba(0,0,0,0.50);
+    overflow:hidden;
+  }
+
+  .container::before {
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(99,102,241,0.5),rgba(56,189,248,0.5),transparent);
+    pointer-events:none;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding:18px 20px 16px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+    position:relative; flex-shrink:0;
+  }
+  .brand { display:flex; align-items:center; gap:13px; }
+  .icon-box {
+    width:48px; height:48px; border-radius:14px;
+    background:linear-gradient(135deg, #6366f1, #818cf8);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:20px;
+    box-shadow:0 8px 24px rgba(99,102,241,0.35), 0 0 0 1px rgba(255,255,255,0.07) inset;
+    transition:0.2s ease; position:relative; overflow:hidden;
+  }
+  .icon-box::after {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    pointer-events:none;
+  }
+  .icon-box:hover { transform:translateY(-1px) scale(1.04); box-shadow:0 12px 30px rgba(99,102,241,0.45); }
+  .icon-box:active { transform:scale(0.97); }
+
+  .brand-copy h2 {
+    font-size:17px; font-weight:800;
+    font-family:'Syne',sans-serif; letter-spacing:0.3px;
+    background:linear-gradient(90deg, #f59e0b 0%, #fcd34d 35%, #fef3c7 55%, #fbbf24 75%, #d97706 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+    filter:drop-shadow(0 0 10px rgba(251,191,36,0.6));
+    animation:goldShimmer 3s ease infinite;
+    background-size:200% auto;
+  }
+  @keyframes goldShimmer {
+    0%   { background-position: 0% center; }
+    50%  { background-position: 100% center; }
+    100% { background-position: 0% center; }
+  }
+  .status-row {
+    display:flex; align-items:center; gap:6px; margin-top:4px;
+  }
+  .status-dot {
+    width:6px; height:6px; border-radius:50%; background:var(--success);
+    box-shadow:0 0 6px var(--success); animation:pulse 2.2s ease infinite;
+  }
+  .status-text { font-size:10px; color:var(--success); font-weight:700; letter-spacing:1px; }
+
+  .header-right { display:flex; align-items:center; gap:10px; }
+
+  .live-widget {
+    display:flex; flex-direction:column; align-items:flex-end; gap:4px;
+  }
+  .live-top {
+    display:flex; align-items:center; gap:6px;
+  }
+  .live-pill {
+    display:flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:999px;
+    background:linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08));
+    border:1px solid rgba(251,191,36,0.25);
+    font-size:10px; font-weight:800; color:#fcd34d;
+    letter-spacing:1px; font-family:'Syne',sans-serif;
+  }
+  .live-pill::before {
+    content:""; width:5px; height:5px; border-radius:50%;
+    background:#fbbf24; box-shadow:0 0 6px #fbbf24;
+    animation:pulse 1.5s ease infinite;
+  }
+  .online-count {
+    font-size:10px; color:rgba(200,210,240,0.55); font-weight:600;
+    letter-spacing:0.3px;
+  }
+  .online-count span { color:#34d399; font-weight:700; }
+
+  /* ── Chat ── */
+  .chatbox {
+    flex:1; overflow-y:auto; padding:20px;
+    display:flex; flex-direction:column; gap:4px;
+    scrollbar-width:none; scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .chatbox::-webkit-scrollbar { display:none; }
+
+  .bot-row {
+    display:flex; align-items:flex-end; gap:8px;
+    align-self:flex-start; max-width:88%;
+    animation:msgIn 0.20s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .bot-avatar {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg,#6366f1,#a78bfa);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+    box-shadow:0 4px 12px rgba(99,102,241,0.35);
+    margin-bottom:18px;
+  }
+  .bot-col { display:flex; flex-direction:column; gap:4px; }
+
+  .message {
+    max-width:100%;
+    padding:12px 16px;
+    border-radius:18px;
+    font-size:14px; line-height:1.75; letter-spacing:0.1px;
+    word-break:break-word; white-space:pre-wrap;
+    position:relative;
+  }
+  .bot {
+    background:linear-gradient(135deg, rgba(30,27,60,0.95), rgba(20,20,45,0.95));
+    border:1px solid rgba(139,92,246,0.22);
+    box-shadow:0 4px 20px rgba(99,102,241,0.15), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    border-bottom-left-radius:5px;
+    color:#e2d9ff;
+    white-space:normal;
+  }
+  .user {
+    align-self:flex-end;
+    background:linear-gradient(135deg, #6366f1, #818cf8);
+    color:#fff;
+    box-shadow:0 8px 24px rgba(99,102,241,0.28), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    border-bottom-right-radius:5px;
+    max-width:84%;
+    animation:msgIn 0.20s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .msg-time {
+    font-size:10px; color:rgba(200,210,240,0.38);
+    font-weight:500; letter-spacing:0.3px;
+    padding:0 4px;
+  }
+  .bot-col .msg-time { align-self:flex-start; }
+  .user-wrap { display:flex; flex-direction:column; gap:4px; align-self:flex-end; align-items:flex-end; animation:msgIn 0.20s cubic-bezier(0.34,1.56,0.64,1); }
+  .user-wrap .msg-time { align-self:flex-end; }
+
+  .rating-row {
+    display:flex; align-items:center; gap:6px;
+    margin-top:2px;
+  }
+  .rate-btn {
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:999px;
+    padding:3px 10px; font-size:13px;
+    cursor:pointer; transition:0.18s ease;
+    color:rgba(200,210,240,0.5);
+  }
+  .rate-btn:hover { background:rgba(255,255,255,0.10); transform:scale(1.08); }
+  .rate-btn.liked  { background:rgba(52,211,153,0.15); border-color:rgba(52,211,153,0.35); color:#34d399; }
+  .rate-btn.disliked { background:rgba(239,68,68,0.12); border-color:rgba(239,68,68,0.30); color:#f87171; }
+  .rate-label { font-size:10px; color:rgba(200,210,240,0.35); }
+
+  .typing-cursor::after {
+    content:"|";
+    animation:blink 0.7s step-end infinite;
+    color:var(--acc); font-weight:300; margin-left:1px;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .message a {
+    color:var(--acc);
+    text-decoration:underline;
+    text-underline-offset:3px;
+    text-decoration-color:rgba(56,189,248,0.45);
+    word-break:break-all;
+    cursor:pointer;
+    font-weight:500;
+    transition:color 0.15s;
+  }
+  .message a:hover { color:#7dd3fc; }
+
+  /* ── Quick Actions ── */
+  .quick-actions {
+    padding:10px 18px 10px;
+    display:flex; gap:8px; overflow-x:auto;
+    scrollbar-width:none;
+    border-top:1px solid rgba(255,255,255,0.04);
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    background:rgba(0,0,0,0.18);
+    flex-shrink:0;
+  }
+  .quick-actions::-webkit-scrollbar { display:none; }
+  .q-btn {
+    white-space:nowrap; flex-shrink:0;
+    padding:9px 14px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:999px;
+    color:var(--text); font-size:12px; font-weight:600;
+    cursor:pointer; font-family:'DM Sans','Noto Sans Myanmar',sans-serif;
+    transition:0.18s ease;
+  }
+  .q-btn:hover {
+    background:rgba(99,102,241,0.12);
+    border-color:rgba(99,102,241,0.35);
+    transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(99,102,241,0.15);
+  }
+  .q-btn:active { transform:translateY(1px); }
+
+  /* ── Footer / Input ── */
+  .footer {
+    padding:14px 16px 18px;
+    border-top:1px solid var(--border);
+    display:flex; gap:10px; align-items:center;
+    background:rgba(6,8,15,0.70);
+    flex-shrink:0;
+    position:sticky;
+    bottom:0;
+    z-index:10;
+  }
+  .input-wrap { flex:1; position:relative; }
+  .input-glow {
+    position:absolute; inset:-1px; border-radius:999px;
+    background:linear-gradient(90deg, rgba(56,189,248,0.3), rgba(99,102,241,0.4), rgba(244,114,182,0.25));
+    border-radius:999px; padding:1px;
+    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:xor; pointer-events:none; opacity:0.5;
+  }
+  input {
+    width:100%;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:999px;
+    padding:12px 18px;
+    color:#fff; outline:none; font-size:14px;
+    font-family:'DM Sans','Noto Sans Myanmar',sans-serif;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    caret-color:#818cf8;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-text-size-adjust:100%;
+    letter-spacing:0.2px;
+    line-height:1.5;
+  }
+  input::placeholder { color:rgba(200,210,240,0.40); }
+  input:focus {
+    border-color:rgba(56,189,248,0.38);
+    box-shadow:0 0 0 4px rgba(56,189,248,0.08);
+    background:rgba(255,255,255,0.06);
+  }
+
+  .send-btn {
+    width:48px; height:48px; border-radius:50%; border:none;
+    background:linear-gradient(135deg, var(--p1), #a78bfa);
+    color:#fff; font-size:15px; cursor:pointer;
+    box-shadow:0 8px 22px rgba(99,102,241,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    transition:0.18s ease; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .send-btn:hover { transform:translateY(-1px) scale(1.04); filter:brightness(1.08); }
+  .send-btn:active { transform:scale(0.96); }
+
+  #saveBtn {
+    padding:14px 16px;
+    background:linear-gradient(135deg, var(--p1), #a78bfa);
+    border:none; border-radius:14px; color:#fff;
+    font-size:13px; font-weight:700; cursor:pointer;
+    font-family:'Syne',sans-serif; letter-spacing:0.3px;
+    transition:0.18s ease; flex-shrink:0;
+  }
+  #saveBtn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  #saveBtn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+  /* ── Typing Indicator ── */
+  .typing-row {
+    display:flex; align-items:flex-end; gap:8px;
+    align-self:flex-start;
+    animation:msgIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .typing-avatar {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg,#6366f1,#a78bfa);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+    box-shadow:0 4px 12px rgba(99,102,241,0.35);
+    animation:avatarBob 2s ease infinite;
+  }
+  @keyframes avatarBob {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)}
+  }
+  .typing-bubble { display:flex; flex-direction:column; gap:4px; }
+  .typing-label {
+    font-size:10px; color:var(--muted); font-weight:600;
+    letter-spacing:0.3px; padding:0 4px;
+    animation:fadeLabel 1.6s ease infinite;
+  }
+  @keyframes fadeLabel { 0%,100%{opacity:0.5} 50%{opacity:1} }
+  .thinking {
+    display:flex; gap:6px; align-items:center; padding:12px 16px;
+    background:linear-gradient(135deg, rgba(30,27,60,0.95), rgba(20,20,45,0.95));
+    border:1px solid rgba(139,92,246,0.22);
+    border-radius:18px; border-bottom-left-radius:5px;
+    width:fit-content;
+    box-shadow:0 4px 20px rgba(99,102,241,0.15);
+  }
+  .thinking span {
+    width:7px; height:7px; border-radius:50%;
+    background:linear-gradient(135deg, var(--p1), #a78bfa);
+    animation:dotPulse 1.4s ease infinite;
+    box-shadow:0 0 6px rgba(99,102,241,0.5);
+  }
+  .thinking span:nth-child(2) { animation-delay:0.22s; }
+  .thinking span:nth-child(3) { animation-delay:0.44s; }
+
+  /* ── Message Status ── */
+  .msg-status {
+    font-size:11px; color:rgba(200,210,240,0.38);
+    font-weight:700; padding:0 4px; align-self:flex-end;
+    letter-spacing:0.5px; transition:color 0.4s ease, text-shadow 0.4s ease;
+    line-height:1;
+  }
+  .msg-status.delivered { color:#818cf8; text-shadow:0 0 8px rgba(129,140,248,0.5); }
+
+  /* ── Scroll-to-Bottom FAB ── */
+  .scroll-fab {
+    position:absolute; bottom:82px; right:14px;
+    width:36px; height:36px; border-radius:50%; border:none;
+    background:linear-gradient(135deg, var(--p1), #a78bfa);
+    color:#fff; font-size:15px; cursor:pointer; z-index:20;
+    box-shadow:0 4px 18px rgba(99,102,241,0.45);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transform:translateY(10px) scale(0.85);
+    transition:0.28s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events:none; -webkit-tap-highlight-color:transparent;
+  }
+  .scroll-fab.visible { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .scroll-fab:active { transform:scale(0.92); }
+
+  /* ── Particle Canvas ── */
+  #particleCanvas { position:fixed; inset:0; pointer-events:none; z-index:9999; }
+
+  @keyframes dotPulse {
+    0%,80%,100% { transform:scale(0.7); opacity:0.4; }
+    40% { transform:scale(1); opacity:1; }
+  }
+  @keyframes msgIn {
+    from { transform:translateY(8px) scale(0.97); opacity:0; }
+    to   { transform:translateY(0) scale(1); opacity:1; }
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.45; }
+  }
+
+  /* Chat Log Viewer */
+  .admin-tabs {
+    display:flex; gap:8px; flex-shrink:0;
+  }
+  .tab-btn {
+    flex:1; padding:9px; border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px; background:rgba(255,255,255,0.04);
+    color:var(--muted); font-size:12px; font-weight:700;
+    cursor:pointer; font-family:'Syne',sans-serif;
+    transition:0.18s ease;
+  }
+  .tab-btn.active {
+    background:rgba(99,102,241,0.18);
+    border-color:rgba(99,102,241,0.35);
+    color:#c4b5fd;
+  }
+  .tab-panel { display:none; flex:1; flex-direction:column; gap:8px; overflow:hidden; }
+  .tab-panel.active { display:flex; }
+  .log-box {
+    flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
+    scrollbar-width:none;
+  }
+  .log-box::-webkit-scrollbar { display:none; }
+  .log-item {
+    background:rgba(0,0,0,0.30); border:1px solid rgba(255,255,255,0.06);
+    border-radius:12px; padding:10px 12px;
+  }
+  .log-q { font-size:11px; color:#a5b4fc; font-weight:700; margin-bottom:4px; }
+  .log-a { font-size:11px; color:rgba(200,210,240,0.55); line-height:1.5; }
+  .log-t { font-size:10px; color:rgba(200,210,240,0.25); margin-top:5px; }
+  .log-empty { font-size:12px; color:var(--muted); text-align:center; margin-top:20px; }
+
+  input {
+    caret-color: #818cf8;
+    -webkit-text-size-adjust: 100%;
+  }
+  input, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (max-width:640px) {
+    .container { max-width:100%; border:none; }
+    #adminDashboard { max-width:100%; }
+    .message { max-width:90%; }
+  }
+</style>
+</head>
+<canvas id="particleCanvas"></canvas>
+
+<body>
+
+<!-- Admin Panel -->
+<div id="adminDashboard">
+  <div class="panel-top">
+    <div class="panel-close" onclick="toggleAdmin()">✕ CLOSE</div>
+  </div>
+  <div class="panel-badge">Secure Admin Panel</div>
+
+  <div class="admin-tabs">
+    <button class="tab-btn active" onclick="switchTab('kb')">📝 Knowledge Base</button>
+    <button class="tab-btn" onclick="switchTab('logs')">📊 Chat Logs</button>
+  </div>
+
+  <!-- KB Tab -->
+  <div class="tab-panel active" id="tab-kb">
+    <div class="panel-label">အချက်အလက်များ ဒီမှာ ရေးထည့်ပါ...</div>
+    <textarea id="knowledgeBase" placeholder="အချက်အလက်များ ဒီမှာ ရေးထည့်ပါ..."></textarea>
+    <button id="saveBtn" onclick="saveToCloud()">☁️ Save to Cloud</button>
+  </div>
+
+  <!-- Logs Tab -->
+  <div class="tab-panel" id="tab-logs">
+    <div class="panel-label" style="flex-shrink:0">User တွေ မေးသွားတဲ့ မေးခွန်းများ</div>
+    <div class="log-box" id="logBox">
+      <div class="log-empty">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Chat Container -->
+<div class="container">
+  <button class="scroll-fab" id="scrollFab" onclick="scrollToBottom()">↓</button>
+  <div class="header">
+    <div class="brand">
+      <div class="icon-box" onclick="secretClick(event)">🎮</div>
+      <div class="brand-copy">
+        <h2>Diamond Gaming</h2>
+        <div class="status-row">
+          <div class="status-dot"></div>
+          <span class="status-text">ONLINE · SECURE</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-widget">
+        <div class="live-top">
+          <div class="live-pill">LIVE</div>
+        </div>
+        <div class="online-count"><span id="onlineCount">247</span> online now</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chatbox" id="chatbox"></div>
+
+  <div class="quick-actions">
+    <button class="q-btn" onclick="quickAsk('အကောင့်ဖွင့်နည်း သိချင်ပါတယ်')">👤 အကောင့်ဖွင့်နည်း</button>
+    <button class="q-btn" onclick="quickAsk('ငွေသွင်းနည်း ရှင်းပြပေးပါ')">💰 ငွေသွင်းနည်း</button>
+    <button class="q-btn" onclick="quickAsk('အခုရှိတဲ့ ပရိုမိုးရှင်းတွေ ပြောပြပါ')">🎁 ပရိုမိုးရှင်း</button>
+    <button class="q-btn" onclick="quickAsk('ဂိမ်းအနိုင်ခန်းများ ကြည့်ချင်ပါတယ်')">🏆 အနိုင်ခန်း</button>
+  </div>
+
+  <div class="footer">
+    <div class="input-wrap">
+      <div class="input-glow"></div>
+      <input type="text" id="userInput"
+        placeholder="မေးမြန်းလိုသည်များကို ရိုက်ထည့်ပါ..."
+        onkeydown="if(event.key==='Enter') handleSend()" />
+    </div>
+    <button class="send-btn" onclick="handleSend()">➤</button>
+  </div>
+</div>
+
+<script>
+/* ── Cloudflare Worker URL (API Key ဝှက်ထားပြီ) ── */
+const WORKER_URL = 'https://glr-air-45-free.zekyyyy2006.workers.dev/';
+
+let clicks = 0, timer;
+
+/* ── Conversation memory ── */
+let chatHistory = [];
+const MAX_HISTORY = 20;
+
+/* ── Unread Badge + Title Flash ── */
+let unreadCount = 0;
+let titleFlashTimer = null;
+const originalTitle = "Diamond Support - Secure Cloud";
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    unreadCount = 0;
+    clearInterval(titleFlashTimer);
+    titleFlashTimer = null;
+    document.title = originalTitle;
+  }
+});
+
+function notifyUnread() {
+  if (document.hidden) {
+    unreadCount++;
+    let toggle = true;
+    if (!titleFlashTimer) {
+      titleFlashTimer = setInterval(() => {
+        document.title = toggle
+          ? `(${unreadCount}) 💬 မက်ဆေ့ ရောက်သည်!`
+          : originalTitle;
+        toggle = !toggle;
+      }, 1000);
+    }
+    if (Notification.permission === 'granted') {
+      new Notification('Diamond Gaming Support', {
+        body: 'Bot မှ အဖြေ ရောက်ရှိနေပါသည် 💎',
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💎</text></svg>'
+      });
+    }
+  }
+}
+
+function requestNotifPermission() {
+  if (Notification.permission === 'default') Notification.requestPermission();
+}
+
+/* ── Sound Effect (Web Audio API) ── */
+let audioCtx = null;
+
+function playNotifSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1100].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.13;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.12, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t); osc.stop(t + 0.35);
+    });
+  } catch(e) {}
+}
+
+/* ── Diamond Particle Animation ── */
+function spawnParticles(cx, cy) {
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#6366f1','#818cf8','#f472b6','#38bdf8','#fbbf24','#a78bfa'];
+  const emojis = ['💎','✨','⭐','🔮'];
+  const particles = Array.from({ length: 24 }, () => ({
+    x: cx, y: cy,
+    vx: (Math.random() - 0.5) * 10,
+    vy: (Math.random() - 0.5) * 10 - 2,
+    size: Math.random() * 5 + 2,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    emoji: Math.random() > 0.65 ? emojis[Math.floor(Math.random() * emojis.length)] : null,
+    life: 1, decay: Math.random() * 0.022 + 0.014, gravity: 0.18,
+  }));
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.life <= 0) return;
+      alive = true;
+      p.x += p.vx; p.y += p.vy;
+      p.vy += p.gravity; p.vx *= 0.97;
+      p.life -= p.decay;
+      ctx.globalAlpha = Math.max(0, p.life);
+      if (p.emoji) {
+        ctx.font = `${p.size * 3}px serif`;
+        ctx.fillText(p.emoji, p.x, p.y);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    });
+    ctx.globalAlpha = 1;
+    if (alive) requestAnimationFrame(animate);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  animate();
+}
+
+/* ── Scroll to Bottom FAB ── */
+function scrollToBottom() {
+  const box = document.getElementById('chatbox');
+  box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+}
+
+/* ── Secret admin tap ── */
+function secretClick(e) {
+  // Particle on every tap
+  if (e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  }
+  clicks++;
+  clearTimeout(timer);
+  if (clicks === 3) { checkPassword(); clicks = 0; }
+  timer = setTimeout(() => clicks = 0, 1000);
+}
+function checkPassword() {
+  const pass = prompt("Admin Password ကို ရိုက်ထည့်ပါ:");
+  if (pass === "2006") toggleAdmin();
+  else if (pass !== null) alert("Password မှားယွင်းနေပါသည်။ Access Denied!");
+}
+function toggleAdmin() {
+  document.getElementById('adminDashboard').classList.toggle('open');
+}
+
+/* ── URL detection & link rendering ── */
+function linkifyText(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, url =>
+    `<a href="${url}" target="_blank" rel="noopener">${url}</a>`
+  );
+}
+
+
+/* ── Message Status tracking ── */
+let lastUserStatus = null;
+
+/* ── Add message with optional typewriter ── */
+function addMessage(role, text, typewriter = false, overrideTime = null) {
+  const box = document.getElementById('chatbox');
+  const timeStr = overrideTime || getTime();
+
+  if (role === 'user') {
+    const wrap = document.createElement('div');
+    wrap.className = 'user-wrap';
+    const bubble = document.createElement('div');
+    bubble.className = 'message user';
+    bubble.innerHTML = linkifyText(text);
+    const ts = document.createElement('div');
+    ts.className = 'msg-time';
+    ts.textContent = timeStr;
+    const status = document.createElement('div');
+    status.className = 'msg-status';
+    status.textContent = '✓';
+    lastUserStatus = status;
+    wrap.appendChild(bubble);
+    wrap.appendChild(ts);
+    wrap.appendChild(status);
+    box.appendChild(wrap);
+    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+    return bubble;
+  }
+
+  const row = document.createElement('div');
+  row.className = 'bot-row';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'bot-avatar';
+  avatar.textContent = '💎';
+
+  const col = document.createElement('div');
+  col.className = 'bot-col';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'message bot';
+
+  const ts = document.createElement('div');
+  ts.className = 'msg-time';
+  ts.textContent = timeStr;
+
+  const ratingRow = document.createElement('div');
+  ratingRow.className = 'rating-row';
+  const likeBtn  = document.createElement('button');
+  likeBtn.className  = 'rate-btn';
+  likeBtn.textContent = '👍';
+  const dislikeBtn = document.createElement('button');
+  dislikeBtn.className = 'rate-btn';
+  dislikeBtn.textContent = '👎';
+  const rateLabel = document.createElement('span');
+  rateLabel.className = 'rate-label';
+
+  likeBtn.onclick = () => {
+    likeBtn.classList.add('liked');
+    dislikeBtn.classList.remove('disliked');
+    rateLabel.textContent = 'ကျေးဇူးတင်ပါတယ်! 😊';
+  };
+  dislikeBtn.onclick = () => {
+    dislikeBtn.classList.add('disliked');
+    likeBtn.classList.remove('liked');
+    rateLabel.textContent = 'မှတ်သားပါမယ် 🙏';
+  };
+
+  ratingRow.appendChild(likeBtn);
+  ratingRow.appendChild(dislikeBtn);
+  ratingRow.appendChild(rateLabel);
+
+  col.appendChild(bubble);
+  col.appendChild(ts);
+  col.appendChild(ratingRow);
+  row.appendChild(avatar);
+  row.appendChild(col);
+  box.appendChild(row);
+  box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+
+  if (typewriter) {
+    bubble.classList.add('typing-cursor');
+    let i = 0;
+    const tick = () => {
+      if (i < text.length) {
+        bubble.innerHTML = formatBotText(linkifyText(text.slice(0, ++i)));
+        box.scrollTop = box.scrollHeight;
+        setTimeout(tick, 16);
+      } else {
+        bubble.classList.remove('typing-cursor');
+      }
+    };
+    setTimeout(tick, 80);
+  } else {
+    bubble.innerHTML = formatBotText(linkifyText(text));
+  }
+  return bubble;
+}
+
+/* ── Thinking / Typing Indicator ── */
+function showThinking() {
+  const box = document.getElementById('chatbox');
+  const row = document.createElement('div');
+  row.className = 'typing-row';
+  row.id = 'thinking';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'typing-avatar';
+  avatar.textContent = '🧐';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'typing-bubble';
+
+  const label = document.createElement('div');
+  label.className = 'typing-label';
+  label.textContent = 'Diamond Bot က ရိုက်နေသည်...';
+
+  const dots = document.createElement('div');
+  dots.className = 'thinking';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+
+  bubble.appendChild(label);
+  bubble.appendChild(dots);
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  box.appendChild(row);
+  box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+}
+function hideThinking() {
+  const el = document.getElementById('thinking');
+  if (el) el.remove();
+}
+
+/* ── Quick ask ── */
+function quickAsk(q) {
+  document.getElementById('userInput').value = q;
+  handleSend();
+}
+
+/* ── Send message ── */
+async function handleSend() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  const kb = document.getElementById('knowledgeBase').value;
+  if (!text) return;
+
+  addMessage("user", text);
+  input.value = '';
+  showThinking();
+  requestNotifPermission();
+
+  chatHistory.push({ role: "user", content: text });
+  if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
+
+  try {
+    /* ✅ Cloudflare Worker (OpenRouter - GPT-OSS-120B) ကို call */
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "zhipuai/glm-4.5-air:free",
+        messages: [
+          {
+            role: "system",
+            content: `သင်သည် Diamond Gaming မှ Support ဖြစ်သည်။ အောက်ပါအချက်အလက်များကိုသာ သုံး၍ မြန်မာလို ယဉ်ကျေးစွာ ဖြေပေးပါ။ Customer ၏ အရင်မေးချက်များကို မှတ်မိပြီး context နဲ့ ဆက်ပြောပါ။\n\n${kb}`
+          },
+          ...chatHistory
+        ]
+      })
+    });
+
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content
+      || "တောင်းပန်ပါတယ်၊ အခုချိန်မှာ အဖြေမရနိုင်သေးပါ။";
+
+    chatHistory.push({ role: "assistant", content: reply });
+    if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
+
+    hideThinking();
+    addMessage("bot", reply, true);
+    // ✓✓ Delivered status update
+    if (lastUserStatus) {
+      setTimeout(() => {
+        lastUserStatus.textContent = '✓✓';
+        lastUserStatus.classList.add('delivered');
+        lastUserStatus = null;
+      }, 300);
+    }
+    // 💎 Particle burst on bot reply
+    spawnParticles(window.innerWidth / 2, window.innerHeight * 0.75);
+    playNotifSound();
+    notifyUnread();
+    if (window.logChatToFirebase) logChatToFirebase(text, reply);
+  } catch (e) {
+    hideThinking();
+    addMessage("bot", "❌ Error: " + e.message, true);
+    playNotifSound();
+    notifyUnread();
+  }
+}
+
+/* ── Admin Tab Switching ── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='kb')||(i===1&&tab==='logs'));
+  });
+  document.getElementById('tab-kb').classList.toggle('active', tab==='kb');
+  document.getElementById('tab-logs').classList.toggle('active', tab==='logs');
+  if (tab === 'logs' && window.loadChatLogsFromFirebase) loadChatLogsFromFirebase();
+}
+
+/* ── Format bot text (markdown-lite → HTML) ── */
+function formatBotText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^━+$/gm, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:10px 0">')
+    .replace(/\n{2,}/g, '</p><p style="margin-top:10px">')
+    .replace(/\n/g, '<br>');
+}
+
+/* ── Timestamp helper ── */
+function getTime() {
+  const now = new Date();
+  return now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+}
+
+window.onload = () => {
+  addMessage("bot", "မင်္ဂလာပါ! Diamond Gaming Support မှ ကြိုဆိုပါတယ်။ ဘယ်လိုကူညီပေးရမလဲ? 💎", true);
+
+  // Scroll FAB logic
+  const chatbox = document.getElementById('chatbox');
+  const fab = document.getElementById('scrollFab');
+  chatbox.addEventListener('scroll', () => {
+    const distFromBottom = chatbox.scrollHeight - chatbox.scrollTop - chatbox.clientHeight;
+    fab.classList.toggle('visible', distFromBottom > 120);
+  });
+
+  let base = 230 + Math.floor(Math.random() * 40);
+  setInterval(() => {
+    base += Math.floor(Math.random() * 7) - 3;
+    base = Math.max(180, Math.min(320, base));
+    const el = document.getElementById('onlineCount');
+    if (el) el.textContent = base;
+  }, 4000);
+};
+</script>
+</body>
+</html>
